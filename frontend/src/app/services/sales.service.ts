@@ -2,6 +2,7 @@ import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface SaleClient {
   _id: string;
@@ -38,7 +39,7 @@ export interface Sale {
   providedIn: 'root'
 })
 export class SalesService {
-  private API_URL = 'http://localhost:5000/api/boutiques';
+  private API_URL = `${environment.apiBaseUrl}/api/boutiques`;
   private platformId = inject(PLATFORM_ID);
 
   constructor(private http: HttpClient) {}
