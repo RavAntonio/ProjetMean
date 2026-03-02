@@ -1,6 +1,14 @@
 const Box = require("../models/Box");
 const Boutique = require("../models/Boutique");
 
+function getPublicBaseUrl(req) {
+  const fromEnv = process.env.PUBLIC_BASE_URL;
+  if (typeof fromEnv === "string" && fromEnv.trim()) {
+    return fromEnv.trim().replace(/\/+$/, "");
+  }
+  return `${req.protocol}://${req.get("host")}`;
+}
+
 const autoReleaseExpiredAndCancelledAllocations = async () => {
   const now = new Date();
   await Box.updateMany(
