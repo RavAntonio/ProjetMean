@@ -1,6 +1,7 @@
 const Boutique = require("../models/Boutique");
 const Box = require("../models/Box");
 const Purchase = require("../models/Purchase");
+const Article = require("../models/Article");
 const mongoose = require("mongoose");
 
 exports.listMine = async (req, res) => {
@@ -125,7 +126,8 @@ exports.getDashboardMine = async (req, res) => {
           $group: {
             _id: "$items.articleId",
             name: { $first: "$items.name" },
-            image: { $first: "$items.image" },
+            // Keep the first non-null image found in purchase snapshots (if any)
+            image: { $max: "$items.image" },
             quantity: { $sum: "$items.quantity" },
             revenue: { $sum: { $multiply: ["$items.price", "$items.quantity"] } }
           }
@@ -200,7 +202,31 @@ exports.getDashboardMine = async (req, res) => {
 
     const kpis = (globalKpis && globalKpis[0]) || { totalRevenue: 0, totalOrders: 0, totalItems: 0 };
 
-    res.json({ months, series, topProducts, kpis });
+    // Fallback: if snapshot image is missing OR points to local /uploads (ephemeral on Render),
+    // use the current Article.image so the dashboard can still display an image.
+    const needsFallback = (url) => {
+      if (!url || typeof url !== "string") return true;
+      return url.includes("/uploads/");
+    };
+
+    const topList = Array.isArray(topProducts) ? topProducts : [];
+    const idsToFetch = topList
+      .filter((p) => needsFallback(p.image))
+      .map((p) => p.articleId)
+      .filter(Boolean);
+
+    if (idsToFetch.length > 0) {
+      const articles = await Article.find({ _id: { $in: idsToFetch } }).select("_id image");
+      const byId = new Map((articles || []).map((a) => [String(a._id), a.image]));
+      for (const p of topList) {
+        if (needsFallback(p.image)) {
+          const img = byId.get(String(p.articleId));
+          if (img) p.image = img;
+        }
+      }
+    }
+
+    res.json({ months, series, topProducts: topList, kpis });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
