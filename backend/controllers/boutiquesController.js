@@ -130,7 +130,7 @@ exports.getDashboardMine = async (req, res) => {
             revenue: { $sum: { $multiply: ["$items.price", "$items.quantity"] } }
           }
         },
-        { $sort: { revenue: -1 } },
+        { $sort: { quantity: -1, revenue: -1 } },
         { $limit: 5 },
         {
           $project: {
