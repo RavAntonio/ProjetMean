@@ -671,7 +671,7 @@ exports.createBox = async (req, res) => {
 
     let imageUrl = typeof image === "string" ? image : "";
     if (req.file) {
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const baseUrl = getPublicBaseUrl(req);
       imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
     }
 
@@ -723,7 +723,7 @@ exports.updateBox = async (req, res) => {
     }
 
     if (req.file) {
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const baseUrl = getPublicBaseUrl(req);
       updateData.image = `${baseUrl}/uploads/${req.file.filename}`;
     }
     const box = await Box.findByIdAndUpdate(req.params.id, updateData, {
