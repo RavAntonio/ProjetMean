@@ -126,10 +126,36 @@ exports.getDashboardMine = async (req, res) => {
           $group: {
             _id: "$items.articleId",
             name: { $first: "$items.name" },
-            // Keep the first non-null image found in purchase snapshots (if any)
-            image: { $max: "$items.image" },
+            image: { $first: "$items.image" },
             quantity: { $sum: "$items.quantity" },
             revenue: { $sum: { $multiply: ["$items.price", "$items.quantity"] } }
+          }
+        },
+        {
+          $addFields: {
+            _articleObjectId: {
+              $convert: {
+                input: "$_id",
+                to: "objectId",
+                onError: null,
+                onNull: null
+              }
+            }
+          }
+        },
+        {
+          $lookup: {
+            from: "articles",
+            localField: "_articleObjectId",
+            foreignField: "_id",
+            as: "article"
+          }
+        },
+        {
+          $addFields: {
+            image: {
+              $ifNull: [{ $first: "$article.image" }, "$image"]
+            }
           }
         },
         { $sort: { quantity: -1, revenue: -1 } },
@@ -202,31 +228,7 @@ exports.getDashboardMine = async (req, res) => {
 
     const kpis = (globalKpis && globalKpis[0]) || { totalRevenue: 0, totalOrders: 0, totalItems: 0 };
 
-    // Fallback: if snapshot image is missing OR points to local /uploads (ephemeral on Render),
-    // use the current Article.image so the dashboard can still display an image.
-    const needsFallback = (url) => {
-      if (!url || typeof url !== "string") return true;
-      return url.includes("/uploads/");
-    };
-
-    const topList = Array.isArray(topProducts) ? topProducts : [];
-    const idsToFetch = topList
-      .filter((p) => needsFallback(p.image))
-      .map((p) => p.articleId)
-      .filter(Boolean);
-
-    if (idsToFetch.length > 0) {
-      const articles = await Article.find({ _id: { $in: idsToFetch } }).select("_id image");
-      const byId = new Map((articles || []).map((a) => [String(a._id), a.image]));
-      for (const p of topList) {
-        if (needsFallback(p.image)) {
-          const img = byId.get(String(p.articleId));
-          if (img) p.image = img;
-        }
-      }
-    }
-
-    res.json({ months, series, topProducts: topList, kpis });
+    res.json({ months, series, topProducts, kpis });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
