@@ -35,6 +35,32 @@ export interface Sale {
   updatedAt: string;
 }
 
+export interface DashboardTopProduct {
+  articleId: string;
+  name: string;
+  image?: string | null;
+  quantity: number;
+  revenue: number;
+}
+
+export interface DashboardRevenuePoint {
+  ym: string;
+  label: string;
+  revenue: number;
+  orders: number;
+}
+
+export interface BoutiqueDashboardStats {
+  months: number;
+  series: DashboardRevenuePoint[];
+  topProducts: DashboardTopProduct[];
+  kpis: {
+    totalRevenue: number;
+    totalOrders: number;
+    totalItems: number;
+  };
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -67,5 +93,20 @@ export class SalesService {
 
   listMineSales(): Observable<Sale[]> {
     return this.http.get<Sale[]>(`${this.API_URL}/sales/mine`, { headers: this.getHeaders() });
+  }
+
+  getBoutiqueDashboard(months = 6): Observable<BoutiqueDashboardStats> {
+    return this.http.get<BoutiqueDashboardStats>(`${this.API_URL}/dashboard?months=${months}`, {
+      headers: this.getHeaders()
+    });
+  }
+
+  getBoutiqueDashboardFor(boutiqueId: string | null, months = 6): Observable<BoutiqueDashboardStats> {
+    const q = new URLSearchParams();
+    q.set('months', String(months));
+    if (boutiqueId) q.set('boutiqueId', boutiqueId);
+    return this.http.get<BoutiqueDashboardStats>(`${this.API_URL}/dashboard?${q.toString()}`, {
+      headers: this.getHeaders()
+    });
   }
 }
