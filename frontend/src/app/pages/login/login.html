@@ -30,7 +30,7 @@
       <input type="password" [(ngModel)]="password" placeholder="🔒 Votre mot de passe">
     </div>
 
-    <button (click)="onLogin()">Se connecter</button>
+    <button (click)="onLogin()" [class.loading]="loading" [disabled]="loading">{{ loading ? 'Connexion…' : 'Se connecter' }}</button>
   </div>
 
   <div class="register-link">

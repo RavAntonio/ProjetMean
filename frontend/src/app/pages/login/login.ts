@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../services/auth';
 
 @Component({
@@ -16,6 +17,7 @@ export class Login implements OnInit {
 
   loginType: 'client' | 'boutique' | 'admin' = 'client';
   animating = false;
+  loading = false;
 
   email: string = '';
   password: string = '';
@@ -55,7 +57,13 @@ export class Login implements OnInit {
   }
 
   onLogin() {
+    if (this.loading) return;
+    this.loading = true;
+
     this.auth.login({ email: this.email, password: this.password })
+      .pipe(finalize(() => {
+        this.loading = false;
+      }))
       .subscribe((res: any) => {
 
         // Sauvegarder le token
