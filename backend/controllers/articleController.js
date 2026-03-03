@@ -1,6 +1,7 @@
 const Article = require("../models/Article");
 const Boutique = require("../models/Boutique");
 const Stock = require("../models/Stock");
+const cloudinary = require("../config/cloudinary");
 
 function getPublicBaseUrl(req) {
   const fromEnv = process.env.PUBLIC_BASE_URL;
@@ -8,6 +9,22 @@ function getPublicBaseUrl(req) {
     return fromEnv.trim().replace(/\/+$/, "");
   }
   return `${req.protocol}://${req.get("host")}`;
+}
+
+function uploadBufferToCloudinary({ buffer, folder }) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: "image"
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+    stream.end(buffer);
+  });
 }
 
 async function assertMineBoutiqueOr404({ boutiqueId, ownerId }) {
@@ -60,8 +77,11 @@ exports.createMineForBoutique = async (req, res) => {
 
     let imageUrl = null;
     if (req.file) {
-      const baseUrl = getPublicBaseUrl(req);
-      imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
+      const result = await uploadBufferToCloudinary({
+        buffer: req.file.buffer,
+        folder: "projetmean/articles"
+      });
+      imageUrl = result.secure_url;
     }
 
     const article = await Article.create({
@@ -138,8 +158,11 @@ exports.updateMineArticleForBoutique = async (req, res) => {
     }
 
     if (req.file) {
-      const baseUrl = getPublicBaseUrl(req);
-      article.image = `${baseUrl}/uploads/${req.file.filename}`;
+      const result = await uploadBufferToCloudinary({
+        buffer: req.file.buffer,
+        folder: "projetmean/articles"
+      });
+      article.image = result.secure_url;
     }
 
     await article.save();
